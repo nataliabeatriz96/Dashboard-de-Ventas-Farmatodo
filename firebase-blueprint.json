@@ -1,0 +1,78 @@
+
+{
+  "entities": {
+    "SalesRecord": {
+      "title": "Sales Record",
+      "description": "A monthly sales performance record for a specific product and store branch.",
+      "type": "object",
+      "properties": {
+        "SKU": {
+          "type": "string",
+          "description": "Unique identifier for the product."
+        },
+        "Descripcion_Producto": {
+          "type": "string",
+          "description": "Full description of the product."
+        },
+        "Nombre_Proveedor": {
+          "type": "string",
+          "description": "Name of the product supplier."
+        },
+        "Codigo_Proveedor": {
+          "type": "string",
+          "description": "Internal code of the supplier."
+        },
+        "Division": {
+          "type": "string",
+          "description": "Business division (e.g., PHARMA, CONSUMER)."
+        },
+        "Grupo": {
+          "type": "string",
+          "description": "Product group."
+        },
+        "Departamento": {
+          "type": "string",
+          "description": "Product department."
+        },
+        "ID_Clase": {
+          "type": "string",
+          "description": "Class identifier."
+        },
+        "Estatus_Producto": {
+          "type": "string",
+          "description": "Current status of the product (e.g., Active)."
+        },
+        "Fecha_Mes": {
+          "type": "string",
+          "format": "date",
+          "description": "The date representing the month of the sales record (YYYY-MM-DD)."
+        },
+        "Unidades_Vendidas": {
+          "type": "number",
+          "description": "Quantity of units sold."
+        },
+        "Ventas_USD": {
+          "type": "number",
+          "description": "Total sales value in USD."
+        }
+      },
+      "required": [
+        "SKU",
+        "Fecha_Mes",
+        "Unidades_Vendidas",
+        "Ventas_USD"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "google"
+    ]
+  },
+  "firestore": {
+    "/ventas_mensuales/{recordId}": {
+      "schema": "SalesRecord",
+      "description": "Collection of monthly sales records."
+    }
+  }
+}
