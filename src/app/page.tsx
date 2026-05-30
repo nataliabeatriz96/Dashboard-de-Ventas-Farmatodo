@@ -39,10 +39,6 @@ export default function OverviewPage() {
 
   // REGLA DE NEGOCIO GLOBAL
   const isRecordValid = (item: SalesRecord) => {
-    const div = item.Division?.trim()?.toUpperCase();
-    if (!div || div === "NULL" || div === "IPOCONSUMO") return false;
-    const codProv = String(item.Codigo_Proveedor || "").trim();
-    if (!codProv || codProv.toLowerCase() === "null") return false;
     return true;
   };
 
