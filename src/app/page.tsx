@@ -17,8 +17,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 export default function OverviewPage() {
   const db = useFirestore();
   const anioActual = new Date().getFullYear();
-  const fechaInicio = `${anioActual}-01-01`;
-  const fechaFin = `${anioActual}-12-31`;
+const fechaInicio = `2025-01-01`;
+const fechaFin = `${anioActual}-12-31`;
 
   const salesQuery = useMemoFirebase(() => {
     if (!db) return null;
