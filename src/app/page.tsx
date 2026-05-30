@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { collection } from "firebase/firestore";
+import { collection, query, where, orderBy } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Navbar } from "@/components/layout/Navbar";
 import { FilterBar } from "@/components/dashboard/FilterBar";
@@ -10,21 +10,34 @@ import { KPICards } from "@/components/dashboard/KPICards";
 import { ChartsSection } from "@/components/dashboard/ChartsSection";
 import { AIInsights } from "@/components/dashboard/AIInsights";
 import { SalesRecord, Filters } from "@/types/sales";
-import { Loader2, DatabaseBackup, UploadCloud, AlertCircle, RefreshCcw } from "lucide-react";
+import { Loader2, DatabaseBackup, UploadCloud, AlertCircle, RefreshCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+function getMesActual() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function OverviewPage() {
   const db = useFirestore();
-  
+  const [mesSeleccionado, setMesSeleccionado] = useState(getMesActual());
+
+  const fechaInicio = mesSeleccionado + "-01";
+  const fechaFin = mesSeleccionado + "-31";
+
   const salesQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return collection(db, "ventas_mensuales");
-  }, [db]);
+    return query(
+      collection(db, "ventas_mensuales"),
+      where("Fecha_Mes", ">=", fechaInicio),
+      where("Fecha_Mes", "<=", fechaFin)
+    );
+  }, [db, fechaInicio, fechaFin]);
 
   const { data: rawData, loading, error } = useCollection<SalesRecord>(salesQuery as any);
-  
+
   const [filters, setFilters] = useState<Filters>({
     mode: "USD",
     division: [],
@@ -37,29 +50,34 @@ export default function OverviewPage() {
     endDate: undefined
   });
 
-  // REGLA DE NEGOCIO GLOBAL
   const isRecordValid = (item: SalesRecord) => {
     return true;
   };
 
-  // Datos filtrados por categorías (IGNORANDO FECHAS para los 4 KPIs principales)
+  function cambiarMes(delta: number) {
+    const [year, month] = mesSeleccionado.split("-").map(Number);
+    const fecha = new Date(year, month - 1 + delta, 1);
+    const nuevoMes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+    setMesSeleccionado(nuevoMes);
+  }
+
+  const allData = rawData || [];
+  const cleanData = allData.filter(isRecordValid);
+  const hasData = cleanData.length > 0;
+
   const baseFilteredData = useMemo(() => {
     if (!rawData) return [];
     return rawData.filter((item) => {
-      if (!isRecordValid(item)) return false;
-
       if (filters.division.length > 0 && !filters.division.includes(item.Division)) return false;
       if (filters.grupo.length > 0 && !filters.grupo.includes(item.Grupo)) return false;
       if (filters.departamento.length > 0 && !filters.departamento.includes(item.Departamento)) return false;
       if (filters.clase.length > 0 && item.Clase && !filters.clase.includes(item.Clase)) return false;
       if (filters.subclase.length > 0 && item.Subclase && !filters.subclase.includes(item.Subclase)) return false;
       if (filters.proveedor && item.Nombre_Proveedor !== filters.proveedor) return false;
-
       return true;
     });
-  }, [rawData, filters.division, filters.grupo, filters.departamento, filters.clase, filters.subclase, filters.proveedor]);
+  }, [rawData, filters]);
 
-  // Datos filtrados por TODO (incluyendo FECHAS para gráficas y el 5to KPI)
   const dateFilteredData = useMemo(() => {
     return baseFilteredData.filter((item) => {
       if (filters.startDate && item.Fecha_Mes.substring(0, 7) < filters.startDate) return false;
@@ -75,7 +93,7 @@ export default function OverviewPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-[#1E3A6E] mx-auto" />
-            <p className="text-muted-foreground font-medium">Sincronizando registros históricos...</p>
+            <p className="text-muted-foreground font-medium">Cargando {mesSeleccionado}...</p>
           </div>
         </div>
       </div>
@@ -102,14 +120,10 @@ export default function OverviewPage() {
     );
   }
 
-  const allData = rawData || [];
-  const cleanData = allData.filter(isRecordValid);
-  const hasData = cleanData.length > 0;
-
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
       <Navbar />
-      
+
       <div className="sticky top-16 z-40 bg-white pb-4 border-b shadow-md">
         <div className="container mx-auto px-4 pt-4">
           <div className="flex items-center justify-between mb-4">
@@ -117,8 +131,14 @@ export default function OverviewPage() {
               <h2 className="text-2xl font-bold text-[#1E3A6E]">Análisis Comercial Farmatodo</h2>
               <p className="text-xs text-muted-foreground">Procesando {dateFilteredData.length.toLocaleString()} registros filtrados</p>
             </div>
-            <div className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded border uppercase">
-              Base de Datos en Vivo
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => cambiarMes(-1)}>
+                <ChevronLeft size={16} />
+              </Button>
+              <span className="text-sm font-bold text-[#1E3A6E] min-w-[80px] text-center">{mesSeleccionado}</span>
+              <Button variant="outline" size="sm" onClick={() => cambiarMes(1)}>
+                <ChevronRight size={16} />
+              </Button>
             </div>
           </div>
           <FilterBar filters={filters} setFilters={setFilters} allData={cleanData} />
@@ -130,8 +150,8 @@ export default function OverviewPage() {
           <div className="flex flex-col items-center justify-center py-24 space-y-6 bg-white rounded-xl border border-dashed border-gray-300">
             <DatabaseBackup size={56} className="text-[#1E3A6E]" />
             <div className="text-center">
-              <h2 className="text-2xl font-bold">Sin Datos Disponibles</h2>
-              <p className="text-muted-foreground">Sube tu archivo CSV o realiza mantenimiento para ver el análisis.</p>
+              <h2 className="text-2xl font-bold">Sin Datos para {mesSeleccionado}</h2>
+              <p className="text-muted-foreground">No hay registros para este mes en la base de datos.</p>
             </div>
             <Link href="/upload">
               <Button size="lg" className="bg-[#1E3A6E] hover:bg-[#152a51]">
@@ -142,10 +162,10 @@ export default function OverviewPage() {
           </div>
         ) : (
           <>
-            <KPICards 
-              data={baseFilteredData} 
-              dateFilteredData={dateFilteredData} 
-              mode={filters.mode} 
+            <KPICards
+              data={baseFilteredData}
+              dateFilteredData={dateFilteredData}
+              mode={filters.mode}
               filters={filters}
             />
             <ChartsSection data={dateFilteredData} mode={filters.mode} />
