@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -35,9 +34,17 @@ interface MultiSelectProps {
   values: string[];
   options: string[];
   onChange: (values: string[]) => void;
+  searchable?: boolean;
 }
 
-function MultiSelect({ label, values, options, onChange }: MultiSelectProps) {
+function MultiSelect({ label, values, options, onChange, searchable = false }: MultiSelectProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const filteredOptions = useMemo(() => {
+    if (!searchable || !searchTerm) return options;
+    return options.filter(opt => opt.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [options, searchTerm, searchable]);
+
   const isAllSelected = values.length === 0 || (options.length > 0 && values.length === options.length);
 
   const toggleValue = (val: string) => {
@@ -47,7 +54,6 @@ function MultiSelect({ label, values, options, onChange }: MultiSelectProps) {
       const newValues = values.includes(val)
         ? values.filter((v) => v !== val)
         : [...values, val];
-      
       if (newValues.length === options.length || newValues.length === 0) {
         onChange([]);
       } else {
@@ -57,17 +63,13 @@ function MultiSelect({ label, values, options, onChange }: MultiSelectProps) {
   };
 
   const toggleAll = () => {
-    if (isAllSelected) {
-      onChange([]);
-    } else {
-      onChange([]); // En nuestra lógica, vacío significa "Todos"
-    }
+    onChange([]);
   };
 
   const getDisplayText = () => {
     if (isAllSelected) return `Todos (${label})`;
     if (values.length === 1) return values[0];
-    return "Varios";
+    return `${values.length} seleccionados`;
   };
 
   return (
@@ -76,13 +78,11 @@ function MultiSelect({ label, values, options, onChange }: MultiSelectProps) {
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="w-full justify-between h-10 text-xs font-normal bg-white border-slate-200 hover:border-slate-300">
-            <span className="truncate pr-2">
-              {getDisplayText()}
-            </span>
+            <span className="truncate pr-2">{getDisplayText()}</span>
             <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[240px] p-0 shadow-xl border-slate-200" align="start">
+        <PopoverContent className="w-[280px] p-0 shadow-xl border-slate-200" align="start">
           <div className="p-2 border-b bg-slate-50 flex items-center justify-between">
             <span className="text-[10px] font-bold text-slate-500 uppercase">{label}</span>
             <Button 
@@ -94,6 +94,19 @@ function MultiSelect({ label, values, options, onChange }: MultiSelectProps) {
               Limpiar
             </Button>
           </div>
+          {searchable && (
+            <div className="p-2 border-b">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                <Input 
+                  placeholder="Buscar..." 
+                  className="pl-8 h-9 text-xs" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
           <ScrollArea className="h-[250px]">
             <div className="p-2 space-y-0.5">
               <div 
@@ -103,10 +116,10 @@ function MultiSelect({ label, values, options, onChange }: MultiSelectProps) {
                 <Checkbox checked={isAllSelected} onCheckedChange={() => {}} className="h-3.5 w-3.5" />
                 <span className="text-[11px] font-bold text-slate-900 leading-none">Todos</span>
               </div>
-              {options.length === 0 ? (
-                <p className="text-[10px] text-muted-foreground p-4 text-center italic">No hay opciones disponibles</p>
+              {filteredOptions.length === 0 ? (
+                <p className="text-[10px] text-muted-foreground p-4 text-center italic">No hay opciones</p>
               ) : (
-                options.map((opt) => (
+                filteredOptions.map((opt) => (
                   <div 
                     key={opt} 
                     className="flex items-center space-x-2 p-1.5 hover:bg-slate-100 rounded cursor-pointer transition-colors" 
@@ -114,73 +127,6 @@ function MultiSelect({ label, values, options, onChange }: MultiSelectProps) {
                   >
                     <Checkbox checked={values.includes(opt) || isAllSelected} onCheckedChange={() => {}} className="h-3.5 w-3.5" />
                     <span className="text-[11px] truncate text-slate-700 leading-none">{opt}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
-
-function SearchableSelect({ label, value, options, onChange }: { label: string, value: string | null, options: string[], onChange: (v: string | null) => void }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  
-  const filteredOptions = useMemo(() => {
-    return options.filter(opt => opt.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [options, searchTerm]);
-
-  return (
-    <div className="flex flex-col space-y-2 flex-1 min-w-[180px]">
-      <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{label}</Label>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="w-full justify-between h-10 text-xs font-normal bg-white border-slate-200 hover:border-slate-300">
-            <span className="truncate pr-2">
-              {value || `Seleccionar ${label}`}
-            </span>
-            <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[280px] p-0 shadow-xl border-slate-200" align="start">
-          <div className="p-2 border-b bg-slate-50 flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500 uppercase">Buscar {label}</span>
-            {value && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-6 px-2 text-[9px] text-red-600 hover:text-red-700 hover:bg-red-50"
-                onClick={() => onChange(null)}
-              >
-                Limpiar
-              </Button>
-            )}
-          </div>
-          <div className="p-2 border-b">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <Input 
-                placeholder="Escribe para buscar..." 
-                className="pl-8 h-9 text-xs" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          <ScrollArea className="h-[250px]">
-            <div className="p-2 space-y-0.5">
-              {filteredOptions.length === 0 ? (
-                <p className="text-[10px] text-muted-foreground p-4 text-center italic">No se encontraron resultados</p>
-              ) : (
-                filteredOptions.map((opt) => (
-                  <div 
-                    key={opt} 
-                    className={`flex items-center space-x-2 p-1.5 hover:bg-slate-100 rounded cursor-pointer transition-colors ${value === opt ? 'bg-blue-50 text-blue-700 font-bold' : ''}`} 
-                    onClick={() => { onChange(opt); setSearchTerm(""); }}
-                  >
-                    <span className="text-[11px] truncate leading-none">{opt}</span>
                   </div>
                 ))
               )}
@@ -202,9 +148,8 @@ export function FilterBar({ filters, setFilters, allData }: FilterBarProps) {
   }, [allData]);
 
   const filteredByProveedor = useMemo(() => {
-    if (!filters.proveedor) return allData;
-    const target = filters.proveedor.trim().toUpperCase();
-    return allData.filter(d => String(d.Nombre_Proveedor || "").trim().toUpperCase() === target);
+    if (!filters.proveedor || filters.proveedor.length === 0) return allData;
+    return allData.filter(d => filters.proveedor.includes(String(d.Nombre_Proveedor || "").trim()));
   }, [allData, filters.proveedor]);
 
   const divisionsOptions = useMemo(() => {
@@ -262,11 +207,12 @@ export function FilterBar({ filters, setFilters, allData }: FilterBarProps) {
           </div>
         </div>
 
-        <SearchableSelect 
-          label="Proveedor" 
-          value={filters.proveedor} 
-          options={proveedoresOptions} 
-          onChange={(v) => setFilters({...filters, proveedor: v, division: [], grupo: [], departamento: [], clase: [], subclase: []})} 
+        <MultiSelect
+          label="Proveedor"
+          values={filters.proveedor}
+          options={proveedoresOptions}
+          onChange={(v) => setFilters({...filters, proveedor: v, division: [], grupo: [], departamento: [], clase: [], subclase: []})}
+          searchable={true}
         />
         
         <MultiSelect 

@@ -29,7 +29,7 @@ export interface Filters {
   departamento: string[];
   clase: string[];
   subclase: string[];
-  proveedor: string | null;
+  proveedor: string[];
   startDate?: string; // YYYY-MM
   endDate?: string;   // YYYY-MM
 }

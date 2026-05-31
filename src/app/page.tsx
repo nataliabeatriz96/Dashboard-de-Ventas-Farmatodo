@@ -38,7 +38,7 @@ const fechaFin = `${anioActual}-12-31`;
     departamento: [],
     clase: [],
     subclase: [],
-    proveedor: null,
+    proveedor: [],
     startDate: undefined,
     endDate: undefined
   });
@@ -54,7 +54,7 @@ const fechaFin = `${anioActual}-12-31`;
       if (filters.departamento.length > 0 && !filters.departamento.includes(item.Departamento)) return false;
       if (filters.clase.length > 0 && item.Clase && !filters.clase.includes(item.Clase)) return false;
       if (filters.subclase.length > 0 && item.Subclase && !filters.subclase.includes(item.Subclase)) return false;
-      if (filters.proveedor && item.Nombre_Proveedor !== filters.proveedor) return false;
+      if (filters.proveedor.length > 0 && !filters.proveedor.includes(item.Nombre_Proveedor)) return false;
       return true;
     });
   }, [rawData, filters]);
